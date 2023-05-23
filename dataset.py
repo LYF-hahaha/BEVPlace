@@ -10,19 +10,19 @@ from sklearn.neighbors import NearestNeighbors
 from network.utils import TransformerCV
 from network.groupnet import group_config
 
+
 def input_transform():
     return transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                               std=[0.229, 0.224, 0.225]),
-    ])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ])
+
 
 class KITTIDataset(data.Dataset):
     def __init__(self, data_path, seq):
         super().__init__()
 
         #protocol setting
-        db_frames = {'00': range(0,3000), '02': range(0,3400), '05': range(0,1000), '06': range(0,600)}
+        db_frames = {'00': range(0, 3000), '02': range(0, 3400), '05': range(0, 1000), '06': range(0, 600)}
         query_frames = {'00': range(3200, 4541), '02': range(3600, 4661), '05': range(1200,2751), '06': range(800,1101)}
         
         self.pos_threshold = 5   #ground truth threshold
@@ -89,7 +89,8 @@ class KITTIDataset(data.Dataset):
                     radius=self.pos_threshold)
 
         return self.positives
-        
+
+
 class YuQuanDataset(data.Dataset):
     def __init__(self, data_path='/home/luolun/gift-netvlad-kitti-test-release/data/YuQuan/'):
         super().__init__()

@@ -12,8 +12,12 @@ import faiss
 from network.bevplace import BEVPlace
 from tqdm import tqdm
 
+import dataset
+
+# 指定所使用的GPU编号
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
+# 运行参数
 parser = argparse.ArgumentParser(description='BEVPlace')
 parser.add_argument('--test_batch_size', type=int, default=128, help='Batch size for testing')
 parser.add_argument('--nGPU', type=int, default=2, help='number of GPU to use.')
@@ -21,7 +25,7 @@ parser.add_argument('--nocuda', action='store_true', help='Dont use cuda')
 parser.add_argument('--threads', type=int, default=40, help='Number of threads for each data loader to use')
 parser.add_argument('--resume', type=str, default='checkpoints', help='Path to load checkpoint from, for resuming training or testing.')
 
-
+# 评价用的函数
 def evaluate(eval_set, model):
     test_data_loader = DataLoader(dataset=eval_set, 
                 num_workers=opt.threads, batch_size=opt.test_batch_size, shuffle=False, 
@@ -75,7 +79,7 @@ def evaluate(eval_set, model):
 
     return recalls
 
-import dataset
+
 if __name__ == "__main__":
     opt = parser.parse_args()
 
@@ -84,13 +88,13 @@ if __name__ == "__main__":
         raise Exception("No GPU found, please run with --nocuda")
 
     device = torch.device("cuda" if cuda else "cpu")
-
-
+    # 载入数据集
     print('===> Loading dataset(s)')
     data_path = './data/KITTI05/'
     seq = '05'
     eval_set = dataset.KITTIDataset(data_path, seq)
-     
+
+    # 载入模型（只是 恢复ckpt的目的是什么？）
     print('===> Building model')
     bevplace = BEVPlace()
     resume_ckpt = join(opt.resume, 'checkpoint.pth.tar')
@@ -102,9 +106,10 @@ if __name__ == "__main__":
     print("=> loaded checkpoint '{}' (epoch {})"
             .format(resume_ckpt, checkpoint['epoch']))
 
-
+    # 多GPU并行（要总共就一个GPU，那就不说了）
     bevplace = nn.DataParallel(bevplace)
     model = bevplace.to(device)
 
+    # 返回recall
     recalls = evaluate(eval_set, model)
     
