@@ -17,6 +17,7 @@ def input_transform():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ])
 
 
+# 导入数据，并将query和db的点云&bev_image对应好
 class KITTIDataset(data.Dataset):
     def __init__(self, data_path, seq):
         super().__init__()
@@ -38,17 +39,21 @@ class KITTIDataset(data.Dataset):
 
         #geometry positions
         poses = np.loadtxt(data_path+'/pose.txt')
+        # 前3列和最后一列合一起？得看pose.txt文件定义了
         positions = np.hstack([poses[:,3].reshape(-1,1), poses[:,11].reshape(-1,1)])
 
+        # 取database和query，事先已经定义好了
         self.db_positions = positions[db_frames[seq], :]
         self.query_positions = positions[query_frames[seq], :]
 
         self.num_db = len(db_frames[seq])
 
         #image pathes
+        # os.listdir的返回值是一个列表，列表里面存储该path下面的子目录的名称
         images = os.listdir(bev_path)
         images.sort()
         self.images = []
+
         for idx in db_frames[seq]:
             self.images.append(bev_path+images[idx])
         for idx in query_frames[seq]:
