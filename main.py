@@ -52,7 +52,7 @@ def evaluate(eval_set, model):
             # enumerate还可以接收第二个参数，用于指定索引起始值（此处起始值为1，默认是0）
             for iteration, (input, indices) in enumerate(test_data_loader, 1):
 
-                batch_feature = bevplace(input)
+                batch_feature = bevplace(input)    # tensor: (119,8192)
 
                 # detach(): 阻断反向传播(输出仍留在显存中)
                 # cpu(): 输出移至cpu上
@@ -62,37 +62,53 @@ def evaluate(eval_set, model):
                 t.update(1)
 
     # vstack 把global_features竖直堆叠形成矩阵（一行代表一个特征）
+    # global_features.shape()=[2551,8192]
     global_features = np.vstack(global_features)
 
     # 用事先定义好的eval_set挑出相应序号的feature
+    # query_feat.shape()=[1551,8192]
     query_feat = global_features[eval_set.num_db:].astype('float32')
+    # db_feat.shape()=[1000,8192]
     db_feat = global_features[:eval_set.num_db].astype('float32')
 
     print('====> Building faiss index')
-    # 一种索引方法
+    # 用FLat L2距离计算相似性，每个向量的维度为.shape(1)
     faiss_index = faiss.IndexFlatL2(query_feat.shape[1])
+    # 加入db向量
     faiss_index.add(db_feat)
 
     print('====> Calculating recall @ N')
     n_values = [1,5,10,20]
 
+    # 分别显示与query最相似的前1，5，10，20名
+    # predictions是结果索引（_处为L2距离值）
     _, predictions = faiss_index.search(query_feat, max(n_values)) 
 
+    # 用position文件算出来的距离确定的正负样本
     gt = eval_set.getPositives() 
 
     correct_at_n = np.zeros(len(n_values))
     whole_test_size = 0
 
+    # predictions: 1551个query, 每个的db中的相似度前20名
+    # 因为是enumerate，所以qIx代表1551个query的序号
     for qIx, pred in enumerate(predictions):
-        if len(gt[qIx]) ==0 : 
+        # 排除重复点？
+        if len(gt[qIx]) == 0 :
             continue
-        whole_test_size+=1
+        whole_test_size += 1
+        # 前1 2 5 20个都来一遍
         for i,n in enumerate(n_values):
+            # np.in1d: 在序列B中寻找与序列A相同的值，并返回一逻辑值（True,False）
+            # 对矩阵所有元素做或运算，存在True则返回True
+            # 前n名中有无与gt label一样的元素，若有则正确数+1，然后下一个query
             if np.any(np.in1d(pred[:n], gt[qIx])):
                 correct_at_n[i:] += 1
                 break
+    # 存储了1 2 5 20四个名次的正确率
     recall_at_n = correct_at_n / whole_test_size
 
+    # 四个名次的正确率都来一遍
     recalls = {} 
     for i,n in enumerate(n_values):
         recalls[n] = recall_at_n[i]

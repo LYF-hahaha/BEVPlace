@@ -87,9 +87,12 @@ class KITTIDataset(data.Dataset):
         # positives for evaluation are those within trivial threshold range
         #fit NN to find them, search by radius
         if  self.positives is None:
+            # -1代表cpu所有核都工作
             knn = NearestNeighbors(n_jobs=-1)
+            # fit内表示用于训练的数据
             knn.fit(self.db_positions)
 
+            # 直接用db的position文件计算距离，以确定正负
             self.distances, self.positives = knn.radius_neighbors(self.query_positions,
                     radius=self.pos_threshold)
 
