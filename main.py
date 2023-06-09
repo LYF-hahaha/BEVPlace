@@ -78,7 +78,7 @@ def evaluate(eval_set, model):
     faiss_index.add(db_feat)
 
     print('====> Calculating recall @ N')
-    n_values = [1,5,10,20]
+    n_values = [1, 5, 10, 20]
 
     # 分别显示与query最相似的前1，5，10，20名
     # predictions是结果索引（_处为L2距离值）
@@ -92,13 +92,14 @@ def evaluate(eval_set, model):
 
     # predictions: 1551个query, 每个的db中的相似度前20名
     # 因为是enumerate，所以qIx代表1551个query的序号
+    # pred是一个[1,20]的向量
     for qIx, pred in enumerate(predictions):
-        # 排除重复点？
-        if len(gt[qIx]) == 0 :
+        # 有的query，没有算出gt值的
+        if len(gt[qIx]) == 0:
             continue
         whole_test_size += 1
         # 前1 2 5 20个都来一遍
-        for i,n in enumerate(n_values):
+        for i, n in enumerate(n_values):
             # np.in1d: 在序列B中寻找与序列A相同的值，并返回一逻辑值（True,False）
             # 对矩阵所有元素做或运算，存在True则返回True
             # 前n名中有无与gt label一样的元素，若有则正确数+1，然后下一个query
@@ -132,6 +133,8 @@ if __name__ == "__main__":
     # 点云&bev_image对应（seq在此无特别作用，应该是作者在训练全部21个序列时选则序列用的）
     eval_set = dataset.KITTIDataset(data_path, seq)
 
+    gt = eval_set.getPositives()
+
     # 载入模型（只是 恢复ckpt的目的是什么？）
     print('===> Building model')
     bevplace = BEVPlace()
@@ -140,18 +143,19 @@ if __name__ == "__main__":
 
     # 加载保存的模型（ torch.save() ）
     # 官方文档：Load all tensors onto the CPU, using a function
+    # 多个conv、embed层的 weight和bias
     checkpoint = torch.load(resume_ckpt, map_location=lambda storage, loc: storage)
     
     # PyTorch 中模型加载权重的一种方法。
     # 它需要一个字典作为参数，其中包含了模型的权重和其他参数。
     # 这个字典可以使用 torch.save() 函数保存到磁盘上，并使用 torch.load() 函数读取。
     # 使用这种方法加载模型时，模型的结构必须与保存时的结构完全相同。
+    # 将上一步的权重数据载入到网络的各个神经元节点中
     bevplace.load_state_dict(checkpoint['state_dict'])
 
     # 模型放到GPU上去
     bevplace = bevplace.to(device)
-    print("=> loaded checkpoint '{}' (epoch {})"
-            .format(resume_ckpt, checkpoint['epoch']))
+    print("=> loaded checkpoint '{}' (epoch {})".format(resume_ckpt, checkpoint['epoch']))
 
     # 多GPU并行（要总共就一个GPU，那就不说了）
     bevplace = nn.DataParallel(bevplace)

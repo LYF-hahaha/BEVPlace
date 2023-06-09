@@ -4,9 +4,13 @@ import pcl
 import cv2
 import os
 import argparse
+from PIL import Image
+import open3d as o3d
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='BEVPlace-Gen-BEV-Images')
-parser.add_argument('--seq_path', type=str, default="./KITTI05/", help='path to data')
+parser.add_argument('--seq_path', type=str, default="/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds", help='path to data')
+
 
 def getBEV(all_points): #N*3
     
@@ -54,24 +58,36 @@ def getBEV(all_points): #N*3
     return mat_global_image,x_max_ind,y_max_ind
 
 
+def bev_check():
+    path = '/home/alex/02_DL/02_BEVPlace/BEVPlace/data/KITTI05/imgs'
+    img_file = os.path.join(path, '000000.png')
+    img = Image.open(img_file)
+    img = np.array(img)
+    print(img.shape)
+
+
 if __name__ == "__main__":
 
     args = parser.parse_args()
-    bins_path = os.listdir(args.seq_path+"/velodyne/")
-    bins_path.sort()
+    bins_path = os.listdir(args.seq_path)
+    bins_path.sort(key= lambda x: int(x[:-4]))
 
-    for i in range(len(bins_path)):
+    with tqdm(total=len(bins_path)) as t:
+        for i in range(len(bins_path)):
+            b_p = bins_path[i]
+            # pcs = np.fromfile(args.seq_path+"/velodyne/"+'/'+b_p, dtype=np.float32).reshape(-1, 4)[:, :3]
 
-        b_p = bins_path[i]
-        pcs = np.fromfile(args.seq_path+"/velodyne/"+'/'+b_p,dtype=np.float32).reshape(-1,4)[:,:3]
+            pcd_load = o3d.io.read_point_cloud(b_p)
+            pcs = np.asarray(pcd_load.points)
 
-        pcs = pcs[np.where(np.abs(pcs[:,0])<25)[0],:]
-        pcs = pcs[np.where(np.abs(pcs[:,1])<25)[0],:]
-        pcs = pcs[np.where(np.abs(pcs[:,2])<25)[0],:]
+            pcs = pcs[np.where(np.abs(pcs[:,0])<25)[0],:]
+            pcs = pcs[np.where(np.abs(pcs[:,1])<25)[0],:]
+            pcs = pcs[np.where(np.abs(pcs[:,2])<25)[0],:]
 
-        pcs = pcs.astype(np.float32)
-        img, _, _ = getBEV(pcs)
+            pcs = pcs.astype(np.float32)
+            img, _, _ = getBEV(pcs)
 
-        cv2.imwrite(args.seq_path+"/imgs/"+b_p[:-4]+".png",img)
-
+            cv2.imwrite("./Apollo"+"/imgs/"+b_p[:-4]+".png", img)
+            t.update(1)
+        t.close()
 exit()

@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import numpy as np
 
 # based on https://github.com/lyakaap/NetVLAD-pytorch/blob/master/netvlad.py
+
+
 class NetVLAD(nn.Module):
     """NetVLAD layer implementation"""
 
@@ -38,7 +40,6 @@ class NetVLAD(nn.Module):
         N, C = x.shape[:2]
 
         x_flatten = x.view(N, C, -1)
-        
 
         soft_assign = self.conv(x).view(N, self.num_clusters, -1)
         soft_assign = F.softmax(soft_assign, dim=1)

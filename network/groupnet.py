@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-
 from .utils import normalize_coordinates, interpolate_feats, to_cuda, dim_extend, l2_normalize
 
 import os
+
 
 class GroupNetConfig:
     def __init__(self):
@@ -17,8 +17,11 @@ class GroupNetConfig:
         self.sample_rotate_inter = 45 
         self.sample_rotate_num = 5   
 
+
 group_config = GroupNetConfig()
 
+
+# 朴素CNN
 class VanillaLightCNN(nn.Module):
     def __init__(self):
         super(VanillaLightCNN, self).__init__()
@@ -47,6 +50,7 @@ class VanillaLightCNN(nn.Module):
         x=l2_normalize(x,axis=1)
         return x
 
+
 class ExtractorWrapper(nn.Module):
     def __init__(self,scale_num, rotation_num):
         super(ExtractorWrapper, self).__init__()
@@ -74,6 +78,7 @@ class ExtractorWrapper(nn.Module):
         gfeats_list=gfeats_list.reshape(b,n,f,self.sn,self.rn)
         
         return gfeats_list
+
 
 class BilinearGCNN(nn.Module):
     def __init__(self):
@@ -149,6 +154,7 @@ class BilinearGCNN(nn.Module):
         x=l2_normalize(x,axis=2)
         return x
 
+
 class EmbedderWrapper(nn.Module):
     def __init__(self):
         super(EmbedderWrapper, self).__init__()
@@ -158,6 +164,7 @@ class EmbedderWrapper(nn.Module):
         # group cnns
         gefeats=self.embedder(gfeats) # b,n,f
         return gefeats
+
 
 class GroupNet(nn.Module):
     def __init__(self, config=group_config):
