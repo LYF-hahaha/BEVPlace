@@ -22,8 +22,9 @@ parser = argparse.ArgumentParser(description='BEVPlace')
 parser.add_argument('--test_batch_size', type=int, default=128, help='Batch size for testing')
 parser.add_argument('--nGPU', type=int, default=2, help='number of GPU to use.')
 parser.add_argument('--nocuda', action='store_true', help='Dont use cuda')
-parser.add_argument('--threads', type=int, default=40, help='Number of threads for each data loader to use')
+parser.add_argument('--threads', type=int, default=8, help='Number of threads for each data loader to use')
 parser.add_argument('--resume', type=str, default='checkpoints', help='Path to load checkpoint from, for resuming training or testing.')
+
 
 # 评价用的函数
 def evaluate(eval_set, model):
@@ -94,7 +95,7 @@ def evaluate(eval_set, model):
     # 因为是enumerate，所以qIx代表1551个query的序号
     # pred是一个[1,20]的向量
     for qIx, pred in enumerate(predictions):
-        # 有的query，没有算出gt值的
+        # 有的query，在db中是没有对应的正样本的
         if len(gt[qIx]) == 0:
             continue
         whole_test_size += 1
@@ -128,10 +129,11 @@ if __name__ == "__main__":
     device = torch.device("cuda" if cuda else "cpu")
     # 载入数据集
     print('===> Loading dataset(s)')
-    data_path = './data/KITTI05/'
-    seq = '05'
+    data_path = './data/Apollo/'
+    # data_path = './data/KITTI05/'
+    seq = 'Sunnyvale_Caspian'
     # 点云&bev_image对应（seq在此无特别作用，应该是作者在训练全部21个序列时选则序列用的）
-    eval_set = dataset.KITTIDataset(data_path, seq)
+    eval_set = dataset.ApolloDataset(data_path, seq)
 
     gt = eval_set.getPositives()
 

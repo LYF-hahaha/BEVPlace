@@ -8,8 +8,15 @@ from PIL import Image
 import open3d as o3d
 from tqdm import tqdm
 
+# KITTI
+arg_1 = ["/home/alex/Dataset/KITTI/LiDAR_Original/00/velodyne", './KITTI00']
+
+# Apollo
+arg_2 = ["/media/alex/Dataset_(SSD_2T)/Apollo/SunnyvaleBigloop/Apollo-SourthBay/MapData/SunnyvaleBigloop/Caspian_and_Geneva/2017-12-13/pcds",
+         './Apollo/Sunnyvale_Caspian']
+
 parser = argparse.ArgumentParser(description='BEVPlace-Gen-BEV-Images')
-parser.add_argument('--seq_path', type=str, default="/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds", help='path to data')
+parser.add_argument('--seq_path', type=str, default=arg_2[0], help='path to data')
 
 
 def getBEV(all_points): #N*3
@@ -37,7 +44,7 @@ def getBEV(all_points): #N*3
     x_num = x_max_ind-x_min_ind+1
     y_num = y_max_ind-y_min_ind+1
 
-    mat_global_image = np.zeros(( y_num,x_num),dtype=np.uint8)
+    mat_global_image = np.zeros(( y_num,x_num), dtype=np.uint8)
           
     for i in range(all_points.shape[0]):
         x_ind = x_max_ind-int(all_points[i,1]/0.4)
@@ -59,8 +66,8 @@ def getBEV(all_points): #N*3
 
 
 def bev_check():
-    path = '/home/alex/02_DL/02_BEVPlace/BEVPlace/data/KITTI05/imgs'
-    img_file = os.path.join(path, '000000.png')
+    path = '/home/alex/02_ML/01_BEVPlace/BEVPlace/data/Apollo/imgs'
+    img_file = os.path.join(path, '1.png')
     img = Image.open(img_file)
     img = np.array(img)
     print(img.shape)
@@ -74,20 +81,22 @@ if __name__ == "__main__":
 
     with tqdm(total=len(bins_path)) as t:
         for i in range(len(bins_path)):
-            b_p = bins_path[i]
-            # pcs = np.fromfile(args.seq_path+"/velodyne/"+'/'+b_p, dtype=np.float32).reshape(-1, 4)[:, :3]
+            b_p = os.path.join(args.seq_path, bins_path[i])
+            # pcs = np.fromfile(b_p, dtype=np.float32).reshape(-1, 4)[:, :3]
 
             pcd_load = o3d.io.read_point_cloud(b_p)
             pcs = np.asarray(pcd_load.points)
 
-            pcs = pcs[np.where(np.abs(pcs[:,0])<25)[0],:]
-            pcs = pcs[np.where(np.abs(pcs[:,1])<25)[0],:]
-            pcs = pcs[np.where(np.abs(pcs[:,2])<25)[0],:]
+            pcs = pcs[np.where(np.abs(pcs[:, 0]) < 25)[0], :]
+            pcs = pcs[np.where(np.abs(pcs[:, 1]) < 25)[0], :]
+            pcs = pcs[np.where(np.abs(pcs[:, 2]) < 25)[0], :]
 
             pcs = pcs.astype(np.float32)
             img, _, _ = getBEV(pcs)
 
-            cv2.imwrite("./Apollo"+"/imgs/"+b_p[:-4]+".png", img)
+            cv2.imwrite(arg_2[1]+"/imgs/"+bins_path[i][:-4]+".png", img)
             t.update(1)
         t.close()
 exit()
+
+#     bev_check()

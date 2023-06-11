@@ -127,7 +127,7 @@ def query_gen(loc):
 
 
 def save_list(list1, filename):
-    file_path = os.path.join('./loop', filename)
+    file_path = os.path.join('../loop', filename)
     file = open(file_path + '.txt', 'w')
     for i in range(len(list1)):
         for j in range(len(list1[i])):
