@@ -62,7 +62,7 @@ def evaluate(eval_set, model):
                 # 手动更新进度条，在目前进度条上增加1个进度
                 t.update(1)
 
-    # vstack 把global_features竖直堆叠形成矩阵（一行代表一个特征）
+    # vstack 把global_features竖直堆叠形成矩阵（一行代表一个8192维的特征）
     # global_features.shape()=[2551,8192]
     global_features = np.vstack(global_features)
 
@@ -94,7 +94,11 @@ def evaluate(eval_set, model):
     # predictions: 1551个query, 每个的db中的相似度前20名
     # 因为是enumerate，所以qIx代表1551个query的序号
     # pred是一个[1,20]的向量
+    ix = []
+    pred_rec = []
+    n_rec = []
     for qIx, pred in enumerate(predictions):
+        a = 0
         # 有的query，在db中是没有对应的正样本的
         if len(gt[qIx]) == 0:
             continue
@@ -105,14 +109,38 @@ def evaluate(eval_set, model):
             # 对矩阵所有元素做或运算，存在True则返回True
             # 前n名中有无与gt label一样的元素，若有则正确数+1，然后下一个query
             if np.any(np.in1d(pred[:n], gt[qIx])):
+                # i以及后面的都+1
                 correct_at_n[i:] += 1
+                a = n
                 break
+        ix.append(qIx+4001)
+        pred_rec.append(pred)
+        n_rec.append(a)
+    # with open("./correct_pred.txt", 'w') as f:
+    #     for i in range(len(correct_pred)):
+    #         for j in range(len(correct_pred[i])):
+    #             f.write(str(correct_pred[i][j]))
+    #             f.write(' ')
+    #         f.write('\n')
+    #     f.close()
+    with open("./pred_check.txt", 'w') as f:
+        for i in range(len(pred_rec)):
+            f.write(str(n_rec[i]))
+            f.write('\t')
+            f.write(str(ix[i]))
+            f.write('\t')
+            for j in range(len(pred_rec[i])):
+                f.write(str(pred_rec[i][j]))
+                f.write(' ')
+            f.write('\n')
+        f.close()
+
     # 存储了1 2 5 20四个名次的正确率
     recall_at_n = correct_at_n / whole_test_size
 
     # 四个名次的正确率都来一遍
     recalls = {} 
-    for i,n in enumerate(n_values):
+    for i, n in enumerate(n_values):
         recalls[n] = recall_at_n[i]
         print("====> Recall@{}: {:.4f}".format(n, recall_at_n[i]))
 
@@ -131,11 +159,12 @@ if __name__ == "__main__":
     print('===> Loading dataset(s)')
     data_path = './data/Apollo/'
     # data_path = './data/KITTI05/'
-    seq = 'Sunnyvale_Caspian'
+    seq = 'SanJose_train'
     # 点云&bev_image对应（seq在此无特别作用，应该是作者在训练全部21个序列时选则序列用的）
     eval_set = dataset.ApolloDataset(data_path, seq)
 
     gt = eval_set.getPositives()
+
 
     # 载入模型（只是 恢复ckpt的目的是什么？）
     print('===> Building model')
