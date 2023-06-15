@@ -137,6 +137,46 @@ def save_list(list1, filename):
     file.close()
 
 
+def load_loop_gt(path, name):
+    file_path = os.path.join(path, name)
+    with open(file_path, 'r') as f:
+        content = f.read().split('\n')
+
+        q_pair = []
+        q_dist = []
+        for i in range(len(content)-1):
+            temp_1 = []
+            temp_2 = []
+            if len(content[i]) != 0:
+                # query.append(i)
+                # z = 3 if 3 > len(content[i]) else len(pair[i])
+                a = content[i].split('\t')[:-1]
+                for j in range(len(a)):
+                    b = a[j].split(',')
+                    c = int(b[0][1:])
+                    d = float(b[1][:-1])
+                    temp_1.append(c)
+                    temp_2.append(d)
+                q_pair.append([i+1, temp_1])
+                q_dist.append([i+1, temp_2])
+        f.close()
+
+    with open('../../loop/pair_gt.csv', 'w') as f:
+        writer = csv.writer(f)
+        for i in range(len(q_pair)):
+            row = q_pair[i]
+            writer.writerow(row)
+        f.close()
+    with open('../../loop/dist_gt.csv', 'w') as f:
+        writer = csv.writer(f)
+        for i in range(len(q_dist)):
+            row = q_dist[i]
+            writer.writerow(row)
+        f.close()
+    #
+    # return query, pair
+
+
 def loop_detect(info, loc):
 
     query_loop = []

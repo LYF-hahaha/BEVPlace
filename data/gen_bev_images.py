@@ -7,13 +7,14 @@ import argparse
 from PIL import Image
 import open3d as o3d
 from tqdm import tqdm
+from pathlib import Path
 
 # KITTI
 arg_1 = ["/home/alex/Dataset/KITTI/LiDAR_Original/00/velodyne", './KITTI00']
 
 # Apollo
-arg_2 = ["/media/alex/Dataset_(SSD_2T)/Apollo/SunnyvaleBigloop/Apollo-SourthBay/MapData/SunnyvaleBigloop/Caspian_and_Geneva/2017-12-13/pcds",
-         './Apollo/Sunnyvale_Caspian']
+arg_2 = ["/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds",
+         '/home/alex/02_DL/02_BEVPlace/BEVPlace/data/Apollo']
 
 parser = argparse.ArgumentParser(description='BEVPlace-Gen-BEV-Images')
 parser.add_argument('--seq_path', type=str, default=arg_2[0], help='path to data')
@@ -93,8 +94,11 @@ if __name__ == "__main__":
 
             pcs = pcs.astype(np.float32)
             img, _, _ = getBEV(pcs)
-
-            cv2.imwrite(arg_2[1]+"/imgs/"+bins_path[i][:-4]+".png", img)
+            a = Path(os.path.join(arg_2[1], 'imgs'))
+            if a.is_dir():
+                cv2.imwrite(arg_2[1]+"/imgs/"+bins_path[i][:-4]+".png", img)
+            else:
+                print("There is no path name:{}".format(a))
             t.update(1)
         t.close()
 exit()

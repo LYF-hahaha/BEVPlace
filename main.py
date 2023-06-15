@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description='BEVPlace')
 parser.add_argument('--test_batch_size', type=int, default=128, help='Batch size for testing')
 parser.add_argument('--nGPU', type=int, default=2, help='number of GPU to use.')
 parser.add_argument('--nocuda', action='store_true', help='Dont use cuda')
-parser.add_argument('--threads', type=int, default=8, help='Number of threads for each data loader to use')
+parser.add_argument('--threads', type=int,  default=0, help='Number of threads for each data loader to use')
 parser.add_argument('--resume', type=str, default='checkpoints', help='Path to load checkpoint from, for resuming training or testing.')
 
 
@@ -164,7 +164,6 @@ if __name__ == "__main__":
     eval_set = dataset.ApolloDataset(data_path, seq)
 
     gt = eval_set.getPositives()
-
 
     # 载入模型（只是 恢复ckpt的目的是什么？）
     print('===> Building model')
