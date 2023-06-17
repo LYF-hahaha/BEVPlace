@@ -4,7 +4,8 @@ import numpy as np
 import csv
 import open3d as o3d
 from tqdm import tqdm
-
+from threading import Thread
+from Show_Path_Apollo import TrajGen
 
 def load_check_file(path, name):
     file_path = os.path.join(path, name)
@@ -125,55 +126,67 @@ def correct_pair(wrong_query, wrong_pair, gt):
     return compair_table
 
 
-def vis_cpt(data_dir, cpt):
+def vis_cpt(data_dir, cpt, index):
 
     vis_q = o3d.visualization.Visualizer()
     vis_c = o3d.visualization.Visualizer()
     vis_w = o3d.visualization.Visualizer()
 
-    i = 1
-    for x in cpt:
-        vis_q.clear_geometries()
-        vis_c.clear_geometries()
-        vis_w.clear_geometries()
+    axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
 
-        pcd_q = o3d.io.read_point_cloud(os.path.join(data_dir, str(x[0])+'.pcd'))
-        pcd_c = o3d.io.read_point_cloud(os.path.join(data_dir, str(x[1])+'.pcd'))
-        pcd_w = o3d.io.read_point_cloud(os.path.join(data_dir, str(x[2])+'.pcd'))
+    vis_q.clear_geometries()
+    vis_c.clear_geometries()
+    vis_w.clear_geometries()
 
-        vis_q.create_window("Query {}/93".format(i), 800, 600)
-        vis_c.create_window("Correct {}/93".format(i), 800, 600)
-        vis_w.create_window("Wrong {}/93".format(i), 800, 600)
+    pcd_q = o3d.io.read_point_cloud(os.path.join(data_dir, str(cpt[index][0])+'.pcd'))
+    pcd_c = o3d.io.read_point_cloud(os.path.join(data_dir, str(cpt[index][1])+'.pcd'))
+    pcd_w = o3d.io.read_point_cloud(os.path.join(data_dir, str(cpt[index][2])+'.pcd'))
 
-        opt_q = vis_q.get_render_option()
-        opt_q.background_color = np.asarray([0, 0, 0])
-        opt_q.point_size = 1
-        opt_q.show_coordinate_frame = False
+    vis_q.create_window("Query {}/93".format(index+1), 800, 600)
+    vis_c.create_window("Correct {}/93".format(index+1), 800, 600)
+    vis_w.create_window("Wrong {}/93".format(index+1), 800, 600)
 
-        opt_c = vis_c.get_render_option()
-        opt_c.background_color = np.asarray([0, 0, 0])
-        opt_c.point_size = 1
-        opt_c.show_coordinate_frame = False
+    opt_q = vis_q.get_render_option()
+    opt_q.background_color = np.asarray([0, 0, 0])
+    opt_q.point_size = 1
+    opt_q.show_coordinate_frame = False
 
-        opt_w = vis_w.get_render_option()
-        opt_w.background_color = np.asarray([0, 0, 0])
-        opt_w.point_size = 1
-        opt_w.show_coordinate_frame = False
+    opt_c = vis_c.get_render_option()
+    opt_c.background_color = np.asarray([0, 0, 0])
+    opt_c.point_size = 1
+    opt_c.show_coordinate_frame = False
 
-        vis_q.add_geometry(pcd_q)
-        vis_c.add_geometry(pcd_c)
-        vis_w.add_geometry(pcd_w)
+    opt_w = vis_w.get_render_option()
+    opt_w.background_color = np.asarray([0, 0, 0])
+    opt_w.point_size = 1
+    opt_w.show_coordinate_frame = False
 
-        axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
-        vis_q.add_geometry(axis)
-        vis_c.add_geometry(axis)
-        vis_w.add_geometry(axis)
+    vis_q.add_geometry(pcd_q)
+    vis_c.add_geometry(pcd_c)
+    vis_w.add_geometry(pcd_w)
 
-        vis_q.run()
-        vis_c.run()
-        vis_w.run()
+    vis_q.add_geometry(axis)
+    vis_c.add_geometry(axis)
+    vis_w.add_geometry(axis)
 
-        i = i+1
+    # 创建 Thread 实例
+    t_q = Thread(target=vis_q.run())
+    t_c = Thread(target=vis_c.run())
+    t_w = Thread(target=vis_w.run())
+
+    # 启动线程运行
+    t_q.start()
+    t_c.start()
+    t_w.start()
+
+    # 等待所有线程执行完毕
+    t_q.join()  # join() 等待线程终止，要不然一直挂起
+    t_c.join()
+    t_w.join()
+
+    # vis_q.run()
+    # vis_c.run()
+    # vis_w.run()
 
 
 if __name__ == "__main__":
@@ -182,10 +195,22 @@ if __name__ == "__main__":
     loop_name = 'loop/pair_gt.csv'
     pcd_path = "/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds"
 
+    # index = input("Please input the query index:")
+    # index = int(index)-1
+    # index = 82
+
     n, q, p = load_check_file(pred_result, pred_name)
     n = np.array(n)
     # recall_bar(n)
     pair_gt = load_loop_gt(pred_result, loop_name)
     w_q, w_p = wrong_filter(pred_result, pred_name)
     cpt = correct_pair(w_q, w_p, pair_gt)
-    vis_cpt(pcd_path, cpt)
+
+    with tqdm(total=93) as t:
+        for index in range(93):
+            T = TrajGen(cpt[index])
+            T.layout_plot()
+            t.update(1)
+        # t.close()
+
+    # vis_cpt(pcd_path, cpt, index)

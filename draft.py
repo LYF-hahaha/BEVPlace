@@ -2,10 +2,16 @@ import open3d as o3d
 import numpy as np
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
+import asyncio
+from threading import Thread
+from time import sleep, ctime
+from network.bevplace import BEVPlace
+
+path_1 = "/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds/1.pcd"
+path_2 = "/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds/16000.pcd"
 
 
 def test():
-    path = "/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds/1.pcd"
 
     vis = o3d.visualization.Visualizer()
     vis.create_window("XXXYYYZZZ", 1024, 768)
@@ -87,6 +93,25 @@ def high_level():
     app.run()
 
 
-if __name__ == "__main__":
-    test()
+def multi_subplot():
+    pcd1 = o3d.io.read_point_cloud(path_1)
+    pcd2 = o3d.io.read_point_cloud(path_2)
 
+    o3d.visualization.draw_geometries([pcd1,pcd2])
+
+
+async def main():
+    print('Hello ...')
+    await asyncio.sleep(1)
+    print('... World!')
+
+
+def func(name, sec):
+    print('---开始---', name, '时间', ctime())
+    sleep(sec)
+    print('***结束***', name, '时间', ctime())
+
+
+if __name__ == "__main__":
+    bev = BEVPlace()
+    print(bev)

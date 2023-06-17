@@ -34,7 +34,7 @@ def evaluate(eval_set, model):
                                   shuffle=False,
                                   pin_memory=cuda)
 
-    # 模型换为评价模式
+    # 模型换为评价模式(不回传梯度)
     model.eval()
 
     global_features = []

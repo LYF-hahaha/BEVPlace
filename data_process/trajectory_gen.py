@@ -3,8 +3,8 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 import os
 
-data_path = "/home/alex/Dataset/Apollo"
-file = 'BaylandstoSeafood_train_gt_poses.txt'
+data_path = "/home/alex/02_DL/02_BEVPlace/BEVPlace/data/Apollo/SanJose_train"
+file = 'gt_poses.txt'
 
 file_path = os.path.join(data_path, file)
 pcd_index = []

@@ -29,10 +29,17 @@ def save_view_point(pcd_path, filename):
 def vis_cons(files_dir):
     files = os.listdir(files_dir)
     files.sort(key=lambda x: int(x[:-4]))
+
+    sel = [[10842, 11547], [0, 4000], [4001, 8000], [8000, 10800], [12000, 14000], [14000, 16000]]
+
+    index = 4
+    start = sel[index][0]
+    end = sel[index][1]
+    selected = files[start:end]
     pcds = []
     print("\nloading pcd files......")
-    with tqdm(total=len(files)) as t:
-        for f in files:
+    with tqdm(total=len(selected)) as t:
+        for f in selected:
             pcd_path = os.path.join(files_dir, f)
             pcd = o3d.io.read_point_cloud(pcd_path)
             # pcd = o3d.open3d.geometry.PointCloud() # 创建点云对象
@@ -46,24 +53,25 @@ def vis_cons(files_dir):
     #    batch_results = np.load('batch_results.npy',allow_pickle=True)
 
     vis = o3d.visualization.Visualizer()
-    vis.create_window()
-    opt = vis.get_render_option()
-    opt.background_color = np.asarray([0, 0, 0])
-    opt.point_size = 1
-    opt.show_coordinate_frame = False
-    if os.path.exists("viewpoint.json"):
-        ctr = vis.get_view_control()
-        param = o3d.io.read_pinhole_camera_parameters("viewpoint.json")
-        ctr.convert_from_pinhole_camera_parameters(param)
+
+    # if os.path.exists("viewpoint.json"):
+    #     ctr = vis.get_view_control()
+    #     param = o3d.io.read_pinhole_camera_parameters("viewpoint.json")
+    #     ctr.convert_from_pinhole_camera_parameters(param)
     print("\nshow result")
     with tqdm(total=len(pcds)) as t:
         for i in range(len(pcds)):
+            vis.create_window("No.{}    Progress:{:.2%}" .format(i+start, i/(end-start)))
+            opt = vis.get_render_option()
+            opt.background_color = np.asarray([0, 0, 0])
+            opt.point_size = 1
+            opt.show_coordinate_frame = False
             vis.clear_geometries()
             axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
             vis.add_geometry(axis)
             vis.add_geometry(pcds[i])
-            ctr.convert_from_pinhole_camera_parameters(param)
-            time.sleep(0.1)
+            # ctr.convert_from_pinhole_camera_parameters(param)
+            time.sleep(0.01)
             vis.run()
             t.update(1)
         t.close()
@@ -71,7 +79,8 @@ def vis_cons(files_dir):
 
 
 if __name__ == '__main__':
-    exp_pcd_file = r"/media/alex/Dataset_(SSD_2T)/Apollo/ColumbiaPark/Apollo-SourthBay/MapData/ColumbiaPark/2018-09-21/1/pcds"
+    exp_pcd_file = r"/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds"
     # view_check_pcd = np.fromfile(os.path.join(exp_pcd_file,'000000.bin'), dtype=np.float32).reshape(-1, 4)[:,:3]
-    save_view_point(exp_pcd_file, "viewpoint.json")
+    # save_view_point(exp_pcd_file, "viewpoint.json")
+    # index = int(input("Please input the index:"))
     vis_cons(exp_pcd_file)
