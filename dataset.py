@@ -11,9 +11,11 @@ from network.utils import TransformerCV
 from network.groupnet import group_config
 
 
+# 将输入图片转换成tensor张量，并归一化
 def input_transform():
     return transforms.Compose([
         transforms.ToTensor(),
+        # 提前将1通道扩成了3通道，每个通道的初始化值不同
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ])
 
 
@@ -179,11 +181,11 @@ class ApolloDataset(data.Dataset):
         super().__init__()
 
         # protocol setting
-        query_frames = {'SanJose_train':range(0, 4000),
+        query_frames = {'SanJose_train':range(10800, 11800),
                         'Baylands_train':range(2500, 3500),
                         'ColumbiaPark_02':range(3500, 10000),
                         'Sunnyvale_Caspian':range(0, 4000)}
-        db_frames = {'SanJose_train':range(4001, 16596),
+        db_frames = {'SanJose_train':range(0, 10799),
                      'Baylands_train':range(3501, 6400),
                      'ColumbiaPark_02':range(10001, 25000),
                      'Sunnyvale_Caspian':range(4001, 14000)}
@@ -194,6 +196,8 @@ class ApolloDataset(data.Dataset):
         # preprocessor
         self.input_transform = input_transform()
         self.transformer = TransformerCV(group_config)
+
+        # 图片采样中 meshgrid的步长
         self.pts_step = 5
 
         # root pathes
@@ -202,7 +206,7 @@ class ApolloDataset(data.Dataset):
 
         # geometry positions
         poses = np.loadtxt(data_path + seq + '/gt_poses.txt')
-        # 前3列和最后一列合一起？得看pose.txt文件定义了
+        # 取x y坐标
         positions = np.hstack([poses[:, 2].reshape(-1, 1), poses[:, 3].reshape(-1, 1)])
 
         # 取database和query，事先已经定义好了
@@ -226,19 +230,39 @@ class ApolloDataset(data.Dataset):
         self.distances = None
 
     def transformImg(self, img):
-        xs, ys = np.meshgrid(np.arange(self.pts_step, img.size()[1] - self.pts_step, self.pts_step),
-                             np.arange(self.pts_step, img.size()[2] - self.pts_step, self.pts_step))
+        # 生成xs, ys的网格点坐标
+        # xs ys都是矩阵，里面每个元素代表每个点的坐标
+        xs, ys = np.meshgrid(np.arange(self.pts_step,       # X的起始点
+                                       img.size()[1] - self.pts_step,    # X的终点
+                                       self.pts_step),   # 采样步长
+                             np.arange(self.pts_step, img.size()[2] - self.pts_step, self.pts_step)) ### Y的
+        # 变成竖的
         xs = xs.reshape(-1, 1)
         ys = ys.reshape(-1, 1)
+        # 左右拍一巴掌
+        # 仿射变换采样点（然后拍扁了）
+        # 生成网格点的坐标list，每个元素为一个点的坐标(x,y)
         pts = np.hstack((xs, ys))
+        # 变成(h,w,c)
+        # 不求梯度
         img = img.permute(1, 2, 0).detach().numpy()
+
+        # 按指定的旋转和平移系数做仿射变换
         transformed_imgs = self.transformer.transform(img, pts)
+
+        # 规范化+toTensor
         data = self.transformer.postprocess_transformed_imgs(transformed_imgs)
         return data
 
+    # 当实例化对象为P后，P(index)则会运行到此处
+    # 即实例化后，对实例输入某个参数便会自动进入这里（有点像针对该实例的构造函数？）
+    # 返回按指定的平移和旋转系数仿射变换后的所有图片
     def __getitem__(self, index):
+        # 转换成RGB（其实就是扩成3通道）
         img = Image.open(self.images[index]).convert('RGB')
+        # 将图片转成张量，并对3通道按不同的mean和std归一化，得出三个不同的201x201矩阵
         img = self.input_transform(img)
+        # 值扩大
         img *= 255
         img = self.transformImg(img)
 

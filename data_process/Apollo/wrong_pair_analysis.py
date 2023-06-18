@@ -7,6 +7,7 @@ from tqdm import tqdm
 from threading import Thread
 from Show_Path_Apollo import TrajGen
 
+
 def load_check_file(path, name):
     file_path = os.path.join(path, name)
     with open(file_path, 'r') as f:
@@ -26,6 +27,12 @@ def load_check_file(path, name):
     return recall_n, query, pair
 
 
+def load_check_file_np(path, name):
+    file_path = os.path.join(path, name)
+    result = np.load(file_path)
+    return result
+
+
 # 载入根据gps信息计算的回环数量（总计4638个）
 def load_loop_gt(path, name):
     file_path = os.path.join(path, name)
@@ -37,9 +44,7 @@ def load_loop_gt(path, name):
             pair_result.append(temp)
         pair.close()
     pair_result = np.array(pair_result)
-    # np.save('../../loop/pair_gt', pair_result)
-    # a = np.load('../../loop/pair_gt.npy')
-    # b=1
+
     return pair_result
 
 
@@ -52,7 +57,7 @@ def recall_bar(n):
 
     plt.figure('Distribution of n')
     plt.bar(x, y, tick_label=l, width=0.4)
-    plt.ylim((0, 2000))
+    plt.ylim((0, max(a, b, c, d, e)*1.2))
 
     for i, j in zip(x, y):
         # ha: horizontal alignment
@@ -84,26 +89,21 @@ def acc_cal(n):
             n_10 = n_10+1
         if i ==20:
             n_20 = n_20+1
-    print("The pred acc is:\nWrong rate:")
-    wrong_rate = wrong/len(n)
-    acc_1 = n_1/len(n)
+    # print("The pred acc is:\nWrong rate:")
+    # wrong_rate = wrong/len(n)
+    # acc_1 = n_1/len(n)
     return wrong, n_1, n_5, n_10, n_20
 
 
 # 载入预测结果文件，统计其中正确、错误的数量（总计2328个）
 def wrong_filter(path, name):
-    r, q, p = load_check_file(path, name)
+    result = load_check_file_np(path, name)
     query = []
     pair = []
-    with open('../../loop/wrong.csv', 'w') as f:
-        writer = csv.writer(f)
-        for i in range(len(r)-1):
-            if r[i] == 0:
-                query.append(q[i])
-                pair.append(p[i])
-                row = [q[i], p[i]]
-                writer.writerow(row)
-        f.close()
+    for i in range(len(result)-1):
+        if result[i, 0] == 0:
+            query.append(result[i, 1])
+            pair.append(result[i, 2:])
     return query, pair
 
 
@@ -117,7 +117,7 @@ def correct_pair(wrong_query, wrong_pair, gt):
     # wrong_query  correct_pair  wrong_pair*3
     compair_table = np.array(compair_table)
 
-    with open('../../loop/compair_table.csv', 'w') as f:
+    with open('../../loop/compair_table_10800_11800.csv', 'w') as f:
         writer = csv.writer(f)
         # writer.writerow(["wrong_query", "correct_pair", "w1", "w2", "w3"])
         for i in range(len(compair_table)):
@@ -190,27 +190,29 @@ def vis_cpt(data_dir, cpt, index):
 
 
 if __name__ == "__main__":
-    pred_result = "../../"
-    pred_name = 'pred_check.txt'
-    loop_name = 'loop/pair_gt.csv'
+    pred_result = "../../loop/np"
+    pred_name = 'pred_result_(10800_11800).npy'
+    loop_name = 'pair_gt.csv'
     pcd_path = "/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds"
 
-    # index = input("Please input the query index:")
-    # index = int(index)-1
-    # index = 82
+    # n, q, p = load_check_file(pred_result, pred_name)
+    # n = np.array(n)
+    # result = load_check_file_np(pred_result, pred_name)
+    # recall_bar(result[:, 0])
 
-    n, q, p = load_check_file(pred_result, pred_name)
-    n = np.array(n)
-    # recall_bar(n)
     pair_gt = load_loop_gt(pred_result, loop_name)
     w_q, w_p = wrong_filter(pred_result, pred_name)
     cpt = correct_pair(w_q, w_p, pair_gt)
 
-    with tqdm(total=93) as t:
-        for index in range(93):
+    print("\nAnalysis Trajectory Generating...")
+    with tqdm(total=len(cpt)) as t:
+        for index in range(len(cpt)):
             T = TrajGen(cpt[index])
             T.layout_plot()
             t.update(1)
-        # t.close()
+        t.close()
 
+    # v_index = input("Please input the query index:")
+    # v_index = int(v_index)-1
+    # v_index = 82
     # vis_cpt(pcd_path, cpt, index)

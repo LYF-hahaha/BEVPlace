@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import faiss
+
 from network.bevplace import BEVPlace
 from tqdm import tqdm
 
@@ -22,7 +23,7 @@ parser = argparse.ArgumentParser(description='BEVPlace')
 parser.add_argument('--test_batch_size', type=int, default=128, help='Batch size for testing')
 parser.add_argument('--nGPU', type=int, default=2, help='number of GPU to use.')
 parser.add_argument('--nocuda', action='store_true', help='Dont use cuda')
-parser.add_argument('--threads', type=int,  default=0, help='Number of threads for each data loader to use')
+parser.add_argument('--threads', type=int,  default=8, help='Number of threads for each data loader to use')
 parser.add_argument('--resume', type=str, default='checkpoints', help='Path to load checkpoint from, for resuming training or testing.')
 
 
@@ -51,18 +52,25 @@ def evaluate(eval_set, model):
             # 对于一个可迭代/可遍历的对象（如列表、字符串），enumerate将其组成一个索引序列，利用它可以同时获得索引和值
             # 一般第一个接收索引号，第二个接收值
             # enumerate还可以接收第二个参数，用于指定索引起始值（此处起始值为1，默认是0）
-            for iteration, (input, indices) in enumerate(test_data_loader, 1):
 
+            # indices是test_data_loader指定的batch_size=128，所返回的一批次128张图片
+            for iteration, (input, indices) in enumerate(test_data_loader, 1):
+                # 这里的input就都是被旋转、缩放、仿射等处理后的图片了
+                # 虽然一个batch=128，channel=3，但是h和w已经各不相同了
+                # 25个batch，是针对同一批batch，进行了25次不同的augmentation(5种Scale 5种Rotation 5*5=25)
+                # input包含两个25长度的list，第一个是augmentation后的图片，第二个是变换参数 shape = (1521,2)
                 batch_feature = bevplace(input)    # tensor: (119,8192)
 
                 # detach(): 阻断反向传播(输出仍留在显存中)
                 # cpu(): 输出移至cpu上
                 # numpy(): tensor转numpy（方便后续存储）
+                # 以上操作就是为了存储刚从网络中算出来的特征
                 global_features.append(batch_feature.detach().cpu().numpy())
+
                 # 手动更新进度条，在目前进度条上增加1个进度
                 t.update(1)
 
-    # vstack 把global_features竖直堆叠形成矩阵（一行代表一个8192维的特征）
+    # vstack 把global_features竖直堆叠形成矩阵（一行代表一个8192维的特征）从上往下拍一巴掌
     # global_features.shape()=[2551,8192]
     global_features = np.vstack(global_features)
 
@@ -83,10 +91,10 @@ def evaluate(eval_set, model):
 
     # 分别显示与query最相似的前1，5，10，20名
     # predictions是结果索引（_处为L2距离值）
-    _, predictions = faiss_index.search(query_feat, max(n_values)) 
+    _, predictions = faiss_index.search(query_feat, max(n_values))
 
     # 用position文件算出来的距离确定的正负样本
-    gt = eval_set.getPositives() 
+    gt = eval_set.getPositives()
 
     correct_at_n = np.zeros(len(n_values))
     whole_test_size = 0
@@ -116,13 +124,14 @@ def evaluate(eval_set, model):
         ix.append(qIx+4001)
         pred_rec.append(pred)
         n_rec.append(a)
-    # with open("./correct_pred.txt", 'w') as f:
-    #     for i in range(len(correct_pred)):
-    #         for j in range(len(correct_pred[i])):
-    #             f.write(str(correct_pred[i][j]))
-    #             f.write(' ')
-    #         f.write('\n')
-    #     f.close()
+    ix = np.array(ix).reshape(-1, 1)
+    pred_rec = np.array(pred_rec)
+    n_rec = np.array(n_rec).reshape(-1, 1)
+
+    result = np.concatenate((n_rec, ix, pred_rec), axis=1)
+    np.save('./loop/np/pred_result_(10800_11800)', result)
+    a = np.load('../../loop/pair_gt.npy')
+
     with open("./pred_check.txt", 'w') as f:
         for i in range(len(pred_rec)):
             f.write(str(n_rec[i]))
@@ -139,7 +148,7 @@ def evaluate(eval_set, model):
     recall_at_n = correct_at_n / whole_test_size
 
     # 四个名次的正确率都来一遍
-    recalls = {} 
+    recalls = {}
     for i, n in enumerate(n_values):
         recalls[n] = recall_at_n[i]
         print("====> Recall@{}: {:.4f}".format(n, recall_at_n[i]))
@@ -161,6 +170,8 @@ if __name__ == "__main__":
     # data_path = './data/KITTI05/'
     seq = 'SanJose_train'
     # 点云&bev_image对应（seq在此无特别作用，应该是作者在训练全部21个序列时选则序列用的）
+
+    # 类实例化为对象（构造函数中已经把query&db list好了）
     eval_set = dataset.ApolloDataset(data_path, seq)
 
     gt = eval_set.getPositives()

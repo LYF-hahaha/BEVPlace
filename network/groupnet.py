@@ -3,21 +3,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from .utils import normalize_coordinates, interpolate_feats, to_cuda, dim_extend, l2_normalize
-
 import os
 
 
 class GroupNetConfig:
     def __init__(self):
         self.sample_scale_begin = 0
-        self.sample_scale_inter = 0.5 
-        self.sample_scale_num = 5 
+        self.sample_scale_inter = 0.5  # 样本缩放基
+        self.sample_scale_num = 5  # 样本缩放数量（25就这么来的）
 
         self.sample_rotate_begin = -90
-        self.sample_rotate_inter = 45 
-        self.sample_rotate_num = 5   
+        self.sample_rotate_inter = 45  # 样本旋转基
+        self.sample_rotate_num = 5   # 样本旋转数量（25就这么来的）
 
 
+# GroupNet的参数
 group_config = GroupNetConfig()
 
 
@@ -64,16 +64,17 @@ class ExtractorWrapper(nn.Module):
         :param pts_list:  list of [b,n,2]
         :return:gefeats [b,n,f,sn,rn]
         '''
-        assert(len(img_list)==self.rn*self.sn)
-        gfeats_list,neg_gfeats_list=[],[]
-        # feature extraction
-        for img_index,img in enumerate(img_list):
-            # extract feature
-            feats=self.extractor(img)
-            gfeats_list.append(interpolate_feats(img,pts_list[img_index],feats)[:,:,:,None])
-            
+        assert(len(img_list) == self.rn*self.sn)    # 5*5=25
+        gfeats_list, neg_gfeats_list = [], []
 
-        gfeats_list=torch.cat(gfeats_list,3)  # b,n,f,sn*rn
+        # feature extraction
+        for img_index, img in enumerate(img_list):
+            # extract feature (Vanilla CNN)
+            feats = self.extractor(img)
+            # 在提取的特征矩阵中根据变换参数双线性差值提取新shape的特征
+            gfeats_list.append(interpolate_feats(img, pts_list[img_index], feats)[:, :, :, None])
+
+        gfeats_list=torch.cat(gfeats_list, 3)  # b,n,f,sn*rn
         b,n,f,_=gfeats_list.shape
         gfeats_list=gfeats_list.reshape(b,n,f,self.sn,self.rn)
         
@@ -130,7 +131,6 @@ class BilinearGCNN(nn.Module):
 
     def forward(self, x):
         '''
-
         :param x:  b,n,f,ssn,srn
         :return:
         '''
@@ -150,8 +150,8 @@ class BilinearGCNN(nn.Module):
         x2 = x2.reshape(b * n, 16, 25).permute(0, 2, 1)  # b*n,25,16
         x = torch.bmm(x1, x2).reshape(b * n, 128)  # b*n,8,25
         assert (x.shape[1] == 128)
-        x=x.reshape(b,n,128)
-        x=l2_normalize(x,axis=2)
+        x=x.reshape(b, n, 128)
+        x=l2_normalize(x, axis=2)
         return x
 
 
@@ -162,7 +162,7 @@ class EmbedderWrapper(nn.Module):
 
     def forward(self, gfeats):
         # group cnns
-        gefeats=self.embedder(gfeats) # b,n,f
+        gefeats = self.embedder(gfeats) # b,n,f
         return gefeats
 
 
@@ -176,7 +176,8 @@ class GroupNet(nn.Module):
         self.embedder=EmbedderWrapper().cuda()
 
     def forward(self, input):
-        (img_list,pts_list) = input
-        gfeats=self.extractor(dim_extend(img_list),dim_extend(pts_list))
+        # 图像序列和变换序列在这里被拆开了
+        (img_list, pts_list) = input
+        gfeats=self.extractor(dim_extend(img_list), dim_extend(pts_list))
         efeats=self.embedder(gfeats)
         return efeats

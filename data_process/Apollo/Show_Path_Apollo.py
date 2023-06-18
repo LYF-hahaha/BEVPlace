@@ -9,7 +9,7 @@ class TrajGen:
 
     def __init__(self, qcw):
 
-        self.path = "/home/alex/02_DL/02_BEVPlace/BEVPlace/data/Apollo/SanJose_train"
+        self.path = "../../data/Apollo/SanJose_train"
         self.filename = 'gt_poses.txt'
         self.qcw = qcw
 
@@ -71,7 +71,7 @@ class TrajGen:
                      textcoords='offset points', fontsize=12, arrowprops=dict(arrowstyle='->',  connectionstyle="arc3,rad=.2"))
         # plt.annotate(r'$End Point$', xy=(x_label[4], y_label[4]), xycoords='data', xytext=(+30, -30),
         #              textcoords='offset points', fontsize=12, arrowprops=dict(arrowstyle='->',  connectionstyle="arc3,rad=.2"))
-        plt.savefig('../../loop/imgs/{}.png'.format(self.qcw[0]))
+        plt.savefig('../../loop/imgs_10800_11800/{}.png'.format(self.qcw[0]))
         plt.close()
         # plt.show()
 
