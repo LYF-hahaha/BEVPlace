@@ -31,5 +31,17 @@ def grid_2():
     # X,Y = np.meshgrid(x, y)
 
 
+def test_3():
+    h = 2
+    w = 3
+    pts0 = np.asarray([[0, 0], [0, h], [w, h], [w, 0]], np.float32)
+    pts1 = [[1,2], [3,-4]]
+    # 中心点位置
+    center = np.mean(pts0, 0)
+    c_2 = center[None, :]
+    min_pts1 = np.min(pts1, 0)
+    print(center.shape)
+
+
 if __name__ == "__main__":
-    grid_2()
+    test_3()

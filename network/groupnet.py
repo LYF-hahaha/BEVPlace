@@ -59,7 +59,6 @@ class ExtractorWrapper(nn.Module):
 
     def forward(self,img_list,pts_list):
         '''
-
         :param img_list:  list of [b,3,h,w]
         :param pts_list:  list of [b,n,2]
         :return:gefeats [b,n,f,sn,rn]
@@ -71,11 +70,12 @@ class ExtractorWrapper(nn.Module):
         for img_index, img in enumerate(img_list):
             # extract feature (Vanilla CNN)
             feats = self.extractor(img)
-            # 在提取的特征矩阵中根据变换参数双线性差值提取新shape的特征
+            # 对特征进行g变化(g变换后得到的不一定是整数，因此会线性插值)
             gfeats_list.append(interpolate_feats(img, pts_list[img_index], feats)[:, :, :, None])
 
         gfeats_list=torch.cat(gfeats_list, 3)  # b,n,f,sn*rn
         b,n,f,_=gfeats_list.shape
+        # feat本来的维度 * scale * rotation
         gfeats_list=gfeats_list.reshape(b,n,f,self.sn,self.rn)
         
         return gfeats_list
@@ -106,7 +106,11 @@ class BilinearGCNN(nn.Module):
             nn.Conv2d(64, 8, 3, 1, 1),
         )
 
-        ###########################
+        #############################
+        # 两个网络最后输出的shape不同，中间过程一样的
+        # network1=(64, 8, 3, 1, 1)
+        # network2=(64, 16, 3, 1, 1)
+        #############################
         self.network2_embed1 = nn.Sequential(
             nn.Conv2d(32, 64, 3, 1, 1),
             nn.ReLU(True),
@@ -148,6 +152,9 @@ class BilinearGCNN(nn.Module):
 
         x1 = x1.reshape(b * n, 8, 25)
         x2 = x2.reshape(b * n, 16, 25).permute(0, 2, 1)  # b*n,25,16
+
+        # torch.bmm 实现三维数组的乘法，而不用拆成二维数组使用for循环解决
+        # 将两个不同的输出f1 f2乘起来
         x = torch.bmm(x1, x2).reshape(b * n, 128)  # b*n,8,25
         assert (x.shape[1] == 128)
         x=x.reshape(b, n, 128)

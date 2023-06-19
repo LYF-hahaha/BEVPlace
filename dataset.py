@@ -190,14 +190,16 @@ class ApolloDataset(data.Dataset):
                      'ColumbiaPark_02':range(10001, 25000),
                      'Sunnyvale_Caspian':range(4001, 14000)}
 
-
         self.pos_threshold = 2  # ground truth threshold
 
         # preprocessor
         self.input_transform = input_transform()
         self.transformer = TransformerCV(group_config)
 
-        # 图片采样中 meshgrid的步长
+        # 为了将变换后的坐标值和变换后的图片提取出的高维特征一一对应
+        # 需要事先确定一个采样点的网格
+        # 这个值就是采样点网格生成时点的步长
+        # f_0(g)=\phi(\eta(T_g*I), T_g(p)) 中p的生成步长
         self.pts_step = 5
 
         # root pathes
@@ -252,11 +254,15 @@ class ApolloDataset(data.Dataset):
 
         # 规范化+toTensor
         data = self.transformer.postprocess_transformed_imgs(transformed_imgs)
+        # 这里面已经包含了affine后的img和pts了（以字典形式存储的，outputs=('img','pts')）
         return data
 
     # 当实例化对象为P后，P(index)则会运行到此处
     # 即实例化后，对实例输入某个参数便会自动进入这里（有点像针对该实例的构造函数？）
     # 返回按指定的平移和旋转系数仿射变换后的所有图片
+
+    # 应该是需要用Dataloader，所以在这里写好了用index获取img
+    # 但此时的img已包含pts
     def __getitem__(self, index):
         # 转换成RGB（其实就是扩成3通道）
         img = Image.open(self.images[index]).convert('RGB')
@@ -264,8 +270,9 @@ class ApolloDataset(data.Dataset):
         img = self.input_transform(img)
         # 值扩大
         img *= 255
+        # 此处img已含pts
         img = self.transformImg(img)
-
+        # img已含pts
         return img, index
 
     def __len__(self):

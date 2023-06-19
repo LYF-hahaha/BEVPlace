@@ -54,6 +54,7 @@ def evaluate(eval_set, model):
             # enumerate还可以接收第二个参数，用于指定索引起始值（此处起始值为1，默认是0）
 
             # indices是test_data_loader指定的batch_size=128，所返回的一批次128张图片
+            # input中已包含 img&pts
             for iteration, (input, indices) in enumerate(test_data_loader, 1):
                 # 这里的input就都是被旋转、缩放、仿射等处理后的图片了
                 # 虽然一个batch=128，channel=3，但是h和w已经各不相同了
