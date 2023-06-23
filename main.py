@@ -122,7 +122,7 @@ def evaluate(eval_set, model):
                 correct_at_n[i:] += 1
                 a = n
                 break
-        ix.append(qIx+4001)
+        ix.append(qIx)
         pred_rec.append(pred)
         n_rec.append(a)
     ix = np.array(ix).reshape(-1, 1)
@@ -130,10 +130,10 @@ def evaluate(eval_set, model):
     n_rec = np.array(n_rec).reshape(-1, 1)
 
     result = np.concatenate((n_rec, ix, pred_rec), axis=1)
-    np.save('./loop/np/pred_result_(10800_11800)', result)
-    a = np.load('../../loop/pair_gt.npy')
+    np.save('./loop/np/pred_result_AS_(1_1500)', result)
+    # a = np.load('../../loop/pair_gt.npy')
 
-    with open("./pred_check.txt", 'w') as f:
+    with open("./pred_check_AS_(1_1500).txt", 'w') as f:
         for i in range(len(pred_rec)):
             f.write(str(n_rec[i]))
             f.write('\t')
@@ -167,9 +167,9 @@ if __name__ == "__main__":
     device = torch.device("cuda" if cuda else "cpu")
     # 载入数据集
     print('===> Loading dataset(s)')
-    data_path = './data/Apollo/'
+    data_path = './data/ApolloSpace/'
     # data_path = './data/KITTI05/'
-    seq = 'SanJose_train'
+    seq = 'train'
     # 点云&bev_image对应（seq在此无特别作用，应该是作者在训练全部21个序列时选则序列用的）
 
     # 类实例化为对象（构造函数中已经把query&db list好了）

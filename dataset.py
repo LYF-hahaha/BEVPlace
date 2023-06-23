@@ -184,11 +184,14 @@ class ApolloDataset(data.Dataset):
         query_frames = {'SanJose_train':range(10800, 11800),
                         'Baylands_train':range(2500, 3500),
                         'ColumbiaPark_02':range(3500, 10000),
-                        'Sunnyvale_Caspian':range(0, 4000)}
+                        'Sunnyvale_Caspian':range(0, 4000),
+                        'train':range(1, 1500)}
+
         db_frames = {'SanJose_train':range(0, 10799),
                      'Baylands_train':range(3501, 6400),
                      'ColumbiaPark_02':range(10001, 25000),
-                     'Sunnyvale_Caspian':range(4001, 14000)}
+                     'Sunnyvale_Caspian':range(4001, 14000),
+                     'train':range(1501, 5590)}
 
         self.pos_threshold = 2  # ground truth threshold
 
@@ -206,10 +209,15 @@ class ApolloDataset(data.Dataset):
         bev_path = data_path + seq + '/imgs/'
         # lidar_path = data_path + '/velodyne/'
 
-        # geometry positions
-        poses = np.loadtxt(data_path + seq + '/gt_poses.txt')
-        # 取x y坐标
-        positions = np.hstack([poses[:, 2].reshape(-1, 1), poses[:, 3].reshape(-1, 1)])
+        # Apollo
+        # poses = np.loadtxt(data_path + seq + '/gt_poses.txt')
+        # Apollo
+        # positions = np.hstack([poses[:, 2].reshape(-1, 1), poses[:, 3].reshape(-1, 1)])
+
+        # ApolloSpace
+        poses = np.loadtxt(data_path + seq + '/Overall_poses.txt')
+        # ApolloSpace
+        positions = np.hstack([poses[:, 1].reshape(-1, 1), poses[:, 2].reshape(-1, 1)])
 
         # 取database和query，事先已经定义好了
         self.db_positions = positions[db_frames[seq], :]

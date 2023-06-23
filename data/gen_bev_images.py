@@ -16,8 +16,11 @@ arg_1 = ["/home/alex/Dataset/KITTI/LiDAR_Original/00/velodyne", './KITTI00']
 arg_2 = ["/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds",
          '/home/alex/02_DL/02_BEVPlace/BEVPlace/data/Apollo']
 
+arg_3 = ["/home/alex/Dataset/ApolloSpace/3D_detection_train/train_pc_overall",
+         "/home/alex/02_ML/01_BEVPlace/BEVPlace/data/ApolloSpace/train"]
+
 parser = argparse.ArgumentParser(description='BEVPlace-Gen-BEV-Images')
-parser.add_argument('--seq_path', type=str, default=arg_2[0], help='path to data')
+parser.add_argument('--seq_path', type=str, default=arg_3[0], help='path to data')
 
 
 def getBEV(all_points): #N*3
@@ -94,9 +97,9 @@ if __name__ == "__main__":
 
             pcs = pcs.astype(np.float32)
             img, _, _ = getBEV(pcs)
-            a = Path(os.path.join(arg_2[1], 'imgs'))
+            a = Path(os.path.join(arg_3[1], 'imgs'))
             if a.is_dir():
-                cv2.imwrite(arg_2[1]+"/imgs/"+bins_path[i][:-4]+".png", img)
+                cv2.imwrite(arg_3[1]+"/imgs/"+bins_path[i][:-4]+".png", img)
             else:
                 print("There is no path name:{}".format(a))
             t.update(1)

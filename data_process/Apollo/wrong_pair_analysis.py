@@ -65,6 +65,7 @@ def recall_bar(n):
         plt.text(i, j + 0.05,  # 文字的位置
                  'num=%.2f\n acc=%.2f' %(j, (j/len(n))),  # 文字内容（传进来的浮点数保留两位数字）
                  ha='center', va='bottom')  # 水平&垂直方向的对齐方式
+
     plt.show()
     plt.text(-3.7, 3, r'$This\ is\ the\ some\ text. \mu\ \sigma_i\ \alpha_t$',
              fontdict={'size': 16, 'color': 'r'})
@@ -191,26 +192,26 @@ def vis_cpt(data_dir, cpt, index):
 
 if __name__ == "__main__":
     pred_result = "../../loop/np"
-    pred_name = 'pred_result_(10800_11800).npy'
+    pred_name = 'pred_result_AS_(1_1500).npy'
     loop_name = 'pair_gt.csv'
     pcd_path = "/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds"
 
     # n, q, p = load_check_file(pred_result, pred_name)
     # n = np.array(n)
-    # result = load_check_file_np(pred_result, pred_name)
-    # recall_bar(result[:, 0])
+    result = load_check_file_np(pred_result, pred_name)
+    recall_bar(result[:, 0])
 
-    pair_gt = load_loop_gt(pred_result, loop_name)
+    # pair_gt = load_loop_gt(pred_result, loop_name)
     w_q, w_p = wrong_filter(pred_result, pred_name)
-    cpt = correct_pair(w_q, w_p, pair_gt)
+    # cpt = correct_pair(w_q, w_p, pair_gt)
 
-    print("\nAnalysis Trajectory Generating...")
-    with tqdm(total=len(cpt)) as t:
-        for index in range(len(cpt)):
-            T = TrajGen(cpt[index])
-            T.layout_plot()
-            t.update(1)
-        t.close()
+    # print("\nAnalysis Trajectory Generating...")
+    # with tqdm(total=len(cpt)) as t:
+    #     for index in range(len(cpt)):
+    #         T = TrajGen(cpt[index])
+    #         T.layout_plot()
+    #         t.update(1)
+    #     t.close()
 
     # v_index = input("Please input the query index:")
     # v_index = int(v_index)-1
