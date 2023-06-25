@@ -75,6 +75,7 @@ def evaluate(eval_set, model):
     # global_features.shape()=[2551,8192]
     global_features = np.vstack(global_features)
 
+    np.save("/home/alex/02_ML/01_BEVPlace/BEVPlace/loop/feature_tsne/gf.npy", global_features)
     # 用事先定义好的eval_set挑出相应序号的feature
     # query_feat.shape()=[1551,8192]
     query_feat = global_features[eval_set.num_db:].astype('float32')

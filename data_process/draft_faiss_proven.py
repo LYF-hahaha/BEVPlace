@@ -2,20 +2,22 @@ import os.path
 
 import numpy as np
 import faiss
-
+import csv
 from tqdm import tqdm
 
 # 定义全局变量
 d = 3  # 向量维度
 nb = 10  # index向量库的数据量
 nq = 4  # 待检索query的数目
-thre = 5
+thre = 2
 
 
 def L2(l1, l2):
+    # dist = (float(l1[0])-float(l2[0]))*(float(l1[0])-float(l2[0])) \
+    #        + (float(l1[1])-float(l2[1]))*(float(l1[1])-float(l2[1])) \
+    #        + (float(l1[2])-float(l2[2]))*(float(l1[2])-float(l2[2]))
     dist = (float(l1[0])-float(l2[0]))*(float(l1[0])-float(l2[0])) \
-           + (float(l1[1])-float(l2[1]))*(float(l1[1])-float(l2[1])) \
-           + (float(l1[2])-float(l2[2]))*(float(l1[2])-float(l2[2]))
+           + (float(l1[1])-float(l2[1]))*(float(l1[1])-float(l2[1]))
     return dist
 
 
@@ -44,8 +46,9 @@ def search(xq, xb):
 def val_search(xq, xb, q_s, q_e):
     # 验证各个排名
     L2_vector=[]
+    flag = False
     for ind in range(len(xb)):
-        db_info = [1, 2]
+        # 在前后2m范围内，不计算回环
         if ind >= q_s and ind <= q_e:
             continue
         l1 = xq
@@ -53,10 +56,10 @@ def val_search(xq, xb, q_s, q_e):
         # print("Now the index is {}".format(ind))
         L2_dist = L2(l1, l2)
         if L2_dist < thre:
-            db_info[0] = ind
-            db_info[1] = L2_dist
+            db_info = ind
             L2_vector.append(db_info)
-    return L2_vector
+            flag = True
+    return L2_vector, flag
     # 相当于对于list的下标集合（即“range(len(L2_vector))”）
     # 按照规则以list列表中的元素（key=lambda k:L2_vector[k]，lambda是匿名函数的意思）
     # 升降序（reverse=False）进行排列
@@ -77,12 +80,11 @@ def data_load(path, filename):
     else:
         lines = file.readlines()
         for line in lines:
-            position = list(range(3))
+            position = list(range(2))
             a = line.split()
             index = a[0]
-            position[0] = a[2]
-            position[1] = a[3]
-            position[2] = a[4]
+            position[0] = a[1]
+            position[1] = a[2]
 
             pcd_index.append(index)
             pcd_location.append(position)
@@ -91,6 +93,11 @@ def data_load(path, filename):
     return pcd_index, pcd_location
 
 
+# 在生成query的时候，不能选太近的点（如前后2m范围内的场景相似，不是因为回环造成的）
+# 所以需要计算每个路标点，向前和向后能计算回环的最近点index
+# 本部分的作用，就是计算对于每个路标点来说，能开始对其计算回环的前后最近点的index
+# 其中，query_index[0]是前向最近点，[1]是后向，list本身的index就是被计算点的序号
+# 并将上述操作保存为.txt格式的文件
 def query_gen(loc):
     L = len(loc)
     query_info = []
@@ -102,6 +109,7 @@ def query_gen(loc):
             flag_1 = True
             flag_2 = True
 
+            # 对i点向前搜索
             k = 0
             while flag_1:
                 l1 = loc[i]
@@ -127,7 +135,7 @@ def query_gen(loc):
 
 
 def save_list(list1, filename):
-    file_path = os.path.join('../loop', filename)
+    file_path = os.path.join('../loop/ApolloSpace_train', filename)
     file = open(file_path + '.txt', 'w')
     for i in range(len(list1)):
         for j in range(len(list1[i])):
@@ -177,8 +185,10 @@ def load_loop_gt(path, name):
     # return query, pair
 
 
+# 对每个点计算正确的回环
+# 文件的自带序号表示query的序号
+# 每个序号对应一个活多个元组，元组第一项为loop index，第二项为相距的距离
 def loop_detect(info, loc):
-
     query_loop = []
     db = loc
     # db = np.array(db).reshape(len(loc), 3)
@@ -187,10 +197,11 @@ def loop_detect(info, loc):
         for i in range(len(loc)):
             query = loc[i]
             # query = np.array(query).reshape(1, 3)
-            q_s = info[i][0]
-            q_e = info[i][1]
-            loop = val_search(query, db, q_s, q_e)
-            query_loop.append(loop)
+            q_s = info[i][0] # 向前最近能开始的点
+            q_e = info[i][1] # 向后最近能开始的点
+            loop, flag = val_search(query, db, q_s, q_e)
+            if flag:
+                query_loop.append([i, loop])
             t.update(1)
 
     save_list(query_loop, "query_loop")
@@ -199,8 +210,8 @@ def loop_detect(info, loc):
 
 if __name__ == "__main__":
 
-    data_path = "/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/SanJoseDowntown/2018-10-11/poses"
-    file_name = "gt_poses.txt"
+    data_path = "/home/alex/02_ML/01_BEVPlace/BEVPlace/data/ApolloSpace/train"
+    file_name = "Overall_poses.txt"
 
     index, location = data_load(data_path, file_name)
     info = query_gen(location)

@@ -9,8 +9,8 @@ class TrajGen:
 
     def __init__(self, qcw):
 
-        self.path = "../../data/Apollo/SanJose_train"
-        self.filename = 'gt_poses.txt'
+        self.path = "../../data/ApolloSpace/train/"
+        self.filename = 'Overall_poses.txt'
         self.qcw = qcw
 
         self.loc_x = []
@@ -26,8 +26,8 @@ class TrajGen:
 
         for i in range(len(traj)-1):
             a = traj[i].split()
-            x_pos = float(a[2])
-            y_pos = float(a[3])
+            x_pos = float(a[1])
+            y_pos = float(a[2])
             x.append(x_pos)
             y.append(y_pos)
 
@@ -71,7 +71,7 @@ class TrajGen:
                      textcoords='offset points', fontsize=12, arrowprops=dict(arrowstyle='->',  connectionstyle="arc3,rad=.2"))
         # plt.annotate(r'$End Point$', xy=(x_label[4], y_label[4]), xycoords='data', xytext=(+30, -30),
         #              textcoords='offset points', fontsize=12, arrowprops=dict(arrowstyle='->',  connectionstyle="arc3,rad=.2"))
-        plt.savefig('../../loop/imgs_10800_11800/{}.png'.format(self.qcw[0]))
+        plt.savefig('../../loop/ApolloSpace_train/imgs_1_1500/{}.png'.format(self.qcw[0]))
         plt.close()
         # plt.show()
 

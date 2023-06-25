@@ -161,7 +161,7 @@ class TransformerCV:
                 # 在dim=1方向上拼接M和offset(M在做offset在右的那种)
                 A = np.concatenate([M, offset[:, None]], 1)
 
-                # note!!!! the border type is constant 127!!!! because in the subsequent processing, we will subtract 127
+                # note!!! the border type is constant 127!!! because in the subsequent processing, we will subtract 127
                 # 仿射变换（前面计算了不同的旋转和平移系数后，在这里做仿射变换）
                 # img_cur是待变换图片
                 # A为变换矩阵
@@ -190,4 +190,3 @@ class TransformerCV:
             pts_list.append(torch.tensor(results['pts'][img_id], dtype=torch.float32))
 
         return img_list, pts_list
-

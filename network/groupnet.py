@@ -70,13 +70,13 @@ class ExtractorWrapper(nn.Module):
         for img_index, img in enumerate(img_list):
             # extract feature (Vanilla CNN)
             feats = self.extractor(img)
-            # 对特征进行g变化(g变换后得到的不一定是整数，因此会线性插值)
+            # 因为对图像有旋转和缩放的变化，需得到变换后特征图对应点的值 (g变换后得到的不一定是整数，因此会线性插值)
             gfeats_list.append(interpolate_feats(img, pts_list[img_index], feats)[:, :, :, None])
 
-        gfeats_list=torch.cat(gfeats_list, 3)  # b,n,f,sn*rn
-        b,n,f,_=gfeats_list.shape
+        gfeats_list = torch.cat(gfeats_list, 3)  # b,n,f,sn*rn
+        b,n,f,_ = gfeats_list.shape
         # feat本来的维度 * scale * rotation
-        gfeats_list=gfeats_list.reshape(b,n,f,self.sn,self.rn)
+        gfeats_list = gfeats_list.reshape(b,n,f,self.sn,self.rn)
         
         return gfeats_list
 

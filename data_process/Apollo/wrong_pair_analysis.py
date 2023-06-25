@@ -37,10 +37,11 @@ def load_check_file_np(path, name):
 def load_loop_gt(path, name):
     file_path = os.path.join(path, name)
     with open(file_path, 'r') as pair:
-        reader = csv.reader(pair)
+        reader = pair.readlines()
         pair_result = []
         for row in reader:
-            temp = [int(row[0]), int(row[1][1:-1].split(',')[0])]
+            row = row.split('\t')
+            temp = [int(row[0]), int(row[1][1:-1].split(',')[0])] # [0]是只选第一个gt
             pair_result.append(temp)
         pair.close()
     pair_result = np.array(pair_result)
@@ -118,7 +119,8 @@ def correct_pair(wrong_query, wrong_pair, gt):
     # wrong_query  correct_pair  wrong_pair*3
     compair_table = np.array(compair_table)
 
-    with open('../../loop/compair_table_10800_11800.csv', 'w') as f:
+    # 保存结果
+    with open('../../loop/ApolloSpace_train/compair_table_0_1500.csv', 'w') as f:
         writer = csv.writer(f)
         # writer.writerow(["wrong_query", "correct_pair", "w1", "w2", "w3"])
         for i in range(len(compair_table)):
@@ -191,19 +193,19 @@ def vis_cpt(data_dir, cpt, index):
 
 
 if __name__ == "__main__":
-    pred_result = "../../loop/np"
+    pred_result = "../../loop/ApolloSpace_train"
     pred_name = 'pred_result_AS_(1_1500).npy'
-    loop_name = 'pair_gt.csv'
-    pcd_path = "/home/alex/Dataset/Apollo/SanJoseDowntown_TrainData/pcds"
+    loop_name = 'query_loop.txt'
+    pcd_path = "/home/alex/Dataset/ApolloSpace/3D_detection_train/train_pc_overall"
 
     # n, q, p = load_check_file(pred_result, pred_name)
     # n = np.array(n)
     result = load_check_file_np(pred_result, pred_name)
-    recall_bar(result[:, 0])
+    # recall_bar(result[:, 0])
 
-    # pair_gt = load_loop_gt(pred_result, loop_name)
+    pair_gt = load_loop_gt(pred_result, loop_name)
     w_q, w_p = wrong_filter(pred_result, pred_name)
-    # cpt = correct_pair(w_q, w_p, pair_gt)
+    cpt = correct_pair(w_q, w_p, pair_gt)
 
     # print("\nAnalysis Trajectory Generating...")
     # with tqdm(total=len(cpt)) as t:
@@ -213,7 +215,7 @@ if __name__ == "__main__":
     #         t.update(1)
     #     t.close()
 
-    # v_index = input("Please input the query index:")
-    # v_index = int(v_index)-1
+    v_index = input("Please input the query index:")
+    v_index = int(v_index)-1
     # v_index = 82
-    # vis_cpt(pcd_path, cpt, index)
+    vis_cpt(pcd_path, cpt, v_index)
